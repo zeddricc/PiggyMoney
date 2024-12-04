@@ -7,7 +7,7 @@ import '../providers/transaction_state.dart'; // Import the transaction state pr
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:piggymoney/features/home/screens/category_screen.dart'; // Import the CategoryScreen
-import 'package:piggymoney/models/sample_data.dart'; // Import your sample data
+import 'package:piggymoney/data/category_data.dart'; // Import your sample data
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
   final String? initialType; // Add a parameter for the initial type
@@ -53,12 +53,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
     // Sample data for dropdowns
     List<String> transactionTypes = ['EXPENSES', 'INCOME', 'TRANSFER'];
-    List<String> categories = [
-      'Groceries',
-      'Utilities',
-      'Rent',
-      'Entertainment'
-    ];
     List<String> wallets = ['Spending', 'Savings', 'Investment'];
 
     return Scaffold(
@@ -67,7 +61,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         child: Column(
           children: [
             // Header with Back Button
-           CustomHeader(
+            CustomHeader(
               title: 'Add Transaction',
               onBackPressed: () {
                 Navigator.pop(context); // Navigate back
@@ -154,26 +148,28 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             const SizedBox(height: 20),
             // Category and Subcategory Selection
             ListTile(
-              title: Text(selectedCategory != null && selectedSubcategory != null
-                  ? '$selectedCategory - $selectedSubcategory'
-                  : 'Select Category and Subcategory'),
+              title: Text(
+                  selectedCategory != null && selectedSubcategory != null
+                      ? '$selectedCategory - $selectedSubcategory'
+                      : 'Select Category and Subcategory'),
               leading: Icon(Icons.category),
               onTap: () async {
                 // Navigate to CategoryScreen and wait for the result
                 final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CategoryScreen(),
-                  ),
-                );
+    context,
+    MaterialPageRoute(
+      builder: (context) => CategoryScreen(transactionType: transactionState.selectedType),
+    ),
+  );
 
                 // If a category and subcategory were selected, update the state
                 if (result != null) {
                   setState(() {
                     selectedCategory = result['category'];
                     selectedSubcategory = result['subcategory'];
-                    String categoryIcon = result['categoryIcon']; // Get the icon
-                    ref.read(transactionProvider.notifier).updateCategory(selectedCategory!, categoryIcon); // Update state with icon
+
+                    ref.read(transactionProvider.notifier).updateCategory(
+                        selectedCategory!); // Update state with icon
                   });
                 }
               },
@@ -261,6 +257,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               padding: const EdgeInsets.all(16),
               child: TextButton(
                 style: AppTheme.primaryButtonStyle,
+                // Trong phần onPressed của nút Save
                 onPressed: () {
                   // Log before adding the transaction
                   print(
@@ -268,13 +265,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
                   // Call the addTransactionItem function
                   transactionService.addTransactionItem(
-                    amount: double.parse(
-                        _amountController.text.replaceAll(',', '')),
+                    amount: transactionState.selectedType == 'EXPENSES'
+                        ? -double.parse(
+                            _amountController.text.replaceAll(',', ''))
+                        : double.parse(
+                            _amountController.text.replaceAll(',', '')),
                     type: transactionState.selectedType,
                     category: transactionState.selectedCategory,
                     wallet: transactionState.selectedWallet,
-                    note: _noteController
-                        .text, // Use the text from the note input
+                    note: _noteController.text,
                     date: transactionState.selectedDate,
                     repeatPattern: _repeatPattern,
                   );

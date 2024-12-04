@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:piggymoney/core/theme/app_theme.dart';
 import 'package:piggymoney/features/home/providers/transaction_service_provider.dart';
+import 'package:piggymoney/helpers/number_helper.dart';
 import 'package:piggymoney/models/category.dart';
-import 'package:piggymoney/models/sample_data.dart';
+import 'package:piggymoney/data/category_data.dart';
 import 'package:piggymoney/widgets/custom_header.dart';
 
 class AllTransactionsScreen extends ConsumerWidget {
@@ -35,8 +37,7 @@ class AllTransactionsScreen extends ConsumerWidget {
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: transactions.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 8),
+                      separatorBuilder: (context, index) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final transaction = transactions[index];
                         // Find the category
@@ -52,14 +53,19 @@ class AllTransactionsScreen extends ConsumerWidget {
 
                         return Container(
                           padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppTheme.primaryColor.withOpacity(0.2),
+                              width: 1,
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
@@ -83,19 +89,18 @@ class AllTransactionsScreen extends ConsumerWidget {
                                   children: [
                                     Text(
                                       transaction.category,
-                                      style: AppTheme.titleStyle
-                                          .copyWith(fontSize: 13),
+                                      style: AppTheme.titleStyle.copyWith(
+                                          fontSize: 16, fontWeight: FontWeight.bold),
                                     ),
-                                    if (transaction.note?.isNotEmpty ?? false)
+                                    if (transaction.note != null &&
+                                        transaction.note!.trim().isNotEmpty)
                                       Text(
                                         transaction.note!,
-                                        style:
-                                            AppTheme.smallTextStyle.copyWith(),
+                                        style: AppTheme.smallTextStyle.copyWith(),
                                       ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '${transaction.date.toLocal()}'
-                                          .split(' ')[0],
+                                      '${DateFormat('dd-MM-yyyy').format(transaction.date)}',
                                       style: AppTheme.smallTextStyle.copyWith(
                                         color: Colors.grey,
                                       ),
@@ -104,7 +109,7 @@ class AllTransactionsScreen extends ConsumerWidget {
                                 ),
                               ),
                               Text(
-                                '${transaction.amount} đ',
+                                '${formatNumber(transaction.amount)} đ',
                                 style: AppTheme.smallTextStyle.copyWith(
                                   color: transaction.amount < 0
                                       ? Colors.red

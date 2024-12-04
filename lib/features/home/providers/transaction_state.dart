@@ -6,7 +6,6 @@ class TransactionState {
   String selectedWallet;
   String note;
   DateTime selectedDate;
-  String? selectedCategoryIcon;
 
   TransactionState({
     this.selectedType = 'EXPENSES',
@@ -14,7 +13,6 @@ class TransactionState {
     this.selectedWallet = 'Spending',
     this.note = 'Monthly grocery shopping',
     DateTime? selectedDate,
-    this.selectedCategoryIcon,
   }) : selectedDate = selectedDate ?? DateTime.now();
 }
 
@@ -28,15 +26,13 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       selectedWallet: state.selectedWallet,
       note: state.note,
       selectedDate: state.selectedDate,
-      selectedCategoryIcon: state.selectedCategoryIcon,
     );
   }
 
-  void updateCategory(String category, String categoryIcon) {
+  void updateCategory(String category) {
     state = TransactionState(
       selectedType: state.selectedType,
       selectedCategory: category,
-      selectedCategoryIcon: categoryIcon,
       selectedWallet: state.selectedWallet,
       note: state.note,
       selectedDate: state.selectedDate,
@@ -50,7 +46,6 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       selectedWallet: wallet,
       note: state.note,
       selectedDate: state.selectedDate,
-      selectedCategoryIcon: state.selectedCategoryIcon,
     );
   }
 
@@ -61,7 +56,6 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       selectedWallet: state.selectedWallet,
       note: note,
       selectedDate: state.selectedDate,
-      selectedCategoryIcon: state.selectedCategoryIcon,
     );
   }
 
@@ -72,7 +66,6 @@ class TransactionNotifier extends StateNotifier<TransactionState> {
       selectedWallet: state.selectedWallet,
       note: state.note,
       selectedDate: date,
-      selectedCategoryIcon: state.selectedCategoryIcon,
     );
   }
 }

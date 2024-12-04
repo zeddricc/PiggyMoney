@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'category.dart';
+import '../models/category.dart';
 
 List<Category> sampleCategories = [
   Category(
@@ -460,6 +460,18 @@ List<Category> sampleCategories = [
         icon: Icons.category,
         color: const Color.fromARGB(255, 36, 59, 37),
       ),
+    ],
+  ),
+
+  Category(
+    name: 'Income',
+    icon: Icons.attach_money,
+    color: Colors.green,
+    subcategories: [
+      Subcategory(name: 'Salary', icon: Icons.work, color: Colors.green),
+      Subcategory(name: 'Business', icon: Icons.business, color: Colors.green),
+      Subcategory(name: 'Investments', icon: Icons.trending_up, color: Colors.green),
+      Subcategory(name: 'Gifts', icon: Icons.card_giftcard, color: Colors.green),
     ],
   ),
 ];

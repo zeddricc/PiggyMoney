@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:piggymoney/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:piggymoney/features/home/providers/balance_visibility_provider.dart';
 import 'package:piggymoney/features/home/providers/transaction_service_provider.dart';
 import 'package:piggymoney/features/home/widget/quick_action_button.dart';
+import 'package:piggymoney/models/category.dart';
+import 'package:piggymoney/data/category_data.dart';
 import 'add_transaction_screen.dart'; // Import the AddTransactionScreen
 import 'all_transactions_screen.dart'; // Import the AllTransactionsScreen
+import 'package:piggymoney/helpers/number_helper.dart'; // Import the number_helper.dart
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -69,7 +73,7 @@ class HomeScreen extends ConsumerWidget {
                       children: [
                         Text(
                           isBalanceVisible
-                              ? '${totalBalance.toStringAsFixed(2)} đ'
+                              ? '${formatNumber(totalBalance)} đ'
                               : '*********',
                           style: AppTheme.headingStyle.copyWith(fontSize: 24),
                         ),
@@ -220,7 +224,20 @@ class HomeScreen extends ConsumerWidget {
                             separatorBuilder: (context, index) =>
                                 const SizedBox(height: 8),
                             itemBuilder: (context, index) {
-                              final transaction = transactions[index];
+                              // Sắp xếp danh sách giao dịch theo ngày giảm dần
+                              final sortedTransactions = transactions
+                                ..sort((a, b) => b.date.compareTo(a.date));
+
+                              final transaction = sortedTransactions[index];
+                              final category = sampleCategories.firstWhere(
+                                (cat) => cat.name == transaction.category,
+                                orElse: () => Category(
+                                  name: 'Miscellaneous', // Default fallback
+                                  icon: Icons.category,
+                                  color: Colors.grey,
+                                  subcategories: [],
+                                ),
+                              );
                               return Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
@@ -243,9 +260,9 @@ class HomeScreen extends ConsumerWidget {
                                             .withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(
-                                        Icons.shopping_bag_outlined,
-                                        color: AppTheme.primaryColor,
+                                      child: Icon(
+                                        category.icon,
+                                        color: category.color,
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -270,8 +287,7 @@ class HomeScreen extends ConsumerWidget {
                                             ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            '${transaction.date.toLocal()}'
-                                                .split(' ')[0],
+                                            '${DateFormat('dd-MM-yyyy').format(transaction.date)}',
                                             style: AppTheme.smallTextStyle
                                                 .copyWith(
                                               color: Colors.grey,
@@ -283,7 +299,7 @@ class HomeScreen extends ConsumerWidget {
                                     Row(
                                       children: [
                                         Text(
-                                          '${transaction.amount} đ',
+                                          '${formatNumber(transaction.amount)} đ',
                                           style:
                                               AppTheme.smallTextStyle.copyWith(
                                             color: transaction.amount < 0

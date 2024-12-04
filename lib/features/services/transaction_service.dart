@@ -4,10 +4,12 @@ import 'package:piggymoney/models/transaction.dart';
 
 class TransactionService {
   late Realm _realm;
+  double _totalBalance = 0.0;
 
   TransactionService() {
     final config = Configuration.local([TransactionItem.schema]);
     _realm = Realm(config);
+    _totalBalance = calculateTotalBalance();
   }
 
   Future<void> addTransactionItem({
@@ -18,10 +20,9 @@ class TransactionService {
     String? note,
     required DateTime date,
     required String repeatPattern,
-    
   }) async {
     final transactionItem = TransactionItem(
-      ObjectId(), // Generate a new ObjectId
+      ObjectId(),
       amount,
       type,
       category,
@@ -29,14 +30,29 @@ class TransactionService {
       date,
       repeatPattern,
       note: note,
-      
     );
 
     _realm.write(() {
-      _realm.add(transactionItem); // Add the transaction item to Realm
-      print('Transaction added: ${transactionItem.toEJson()}'); // Log the transaction details
+      _realm.add(transactionItem);
+      print('Transaction added: ${transactionItem.toEJson()}');
+
+      if (type == 'EXPENSES') {
+        _totalBalance -= amount;
+      } else if (type == 'INCOME') {
+        _totalBalance += amount;
+      }
     });
+
+    print('Current total balance: $_totalBalance');
   }
+
+  double calculateTotalBalance() {
+    final transactions = getAllTransactions();
+    return transactions.fold(
+        0.0, (sum, transaction) => sum + transaction.amount);
+  }
+
+  double get totalBalance => _totalBalance;
 
   List<TransactionItem> getAllTransactions() {
     return _realm.all<TransactionItem>().toList();
@@ -47,14 +63,11 @@ class TransactionService {
       _realm.write(() {
         final transactionItem = _realm.find<TransactionItem>(id);
         if (transactionItem != null) {
-          // Log the transaction details before deletion
           print('Deleting transaction: ${transactionItem.toEJson()}');
-          
-          // Delete the transaction item from Realm
-          _realm.delete(transactionItem); 
-          
-          // Do not access transactionItem after deletion
-          print('Transaction deleted successfully.'); // Log the deletion without accessing the object
+
+          _realm.delete(transactionItem);
+
+          print('Transaction deleted successfully.');
         } else {
           print('Transaction not found for ID: $id');
         }
@@ -77,7 +90,6 @@ class TransactionService {
     _realm.write(() {
       final transactionItem = _realm.find<TransactionItem>(id);
       if (transactionItem != null) {
-        // Update the fields of the transaction item
         transactionItem.amount = amount;
         transactionItem.type = type;
         transactionItem.category = category;
@@ -86,19 +98,14 @@ class TransactionService {
         transactionItem.date = date;
         transactionItem.repeatPattern = repeatPattern;
 
-        print('Transaction updated: ${transactionItem.toEJson()}'); // Log the update
+        print('Transaction updated: ${transactionItem.toEJson()}');
       } else {
         print('Transaction not found for ID: $id');
       }
     });
   }
 
-  double calculateTotalBalance() {
-    final transactions = getAllTransactions();
-    return transactions.fold(0.0, (sum, transaction) => sum + transaction.amount);
-  }
-
   void dispose() {
     _realm.close();
   }
-} 
+}
