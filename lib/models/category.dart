@@ -17,11 +17,13 @@ class Category {
   final IconData icon;
   final List<Subcategory> subcategories; 
   final Color color;
+  final String type;
 
   Category({
     required this.name,
     required this.icon,
     required this.subcategories,
     required this.color,
+    required this.type,
   });
 } 

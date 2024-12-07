@@ -6,6 +6,7 @@ List<Category> sampleCategories = [
     name: 'Food',
     icon: Icons.fastfood,
     color: Colors.orange,
+    type: 'EXPENSES',
     subcategories: [
       Subcategory(
         name: 'Groceries',
@@ -53,6 +54,7 @@ List<Category> sampleCategories = [
     name: 'Transport',
     icon: Icons.directions_car,
     color: Colors.blue,
+    type: 'EXPENSES',
     subcategories: [
       Subcategory(
         name: 'Fuel',
@@ -100,6 +102,7 @@ List<Category> sampleCategories = [
     name: 'Entertainment',
     icon: Icons.movie,
     color: Colors.purple,
+    type: 'EXPENSES',
     subcategories: [
       Subcategory(
         name: 'Movies',
@@ -147,6 +150,7 @@ List<Category> sampleCategories = [
     name: 'Health',
     icon: Icons.health_and_safety,
     color: Colors.green,
+    type: 'EXPENSES',
     subcategories: [
       Subcategory(
         name: 'Gym',
@@ -189,6 +193,7 @@ List<Category> sampleCategories = [
     name: 'Shopping',
     icon: Icons.shopping_bag,
     color: Colors.pink,
+    type: 'EXPENSES',
     subcategories: [
       Subcategory(
         name: 'Clothes',
@@ -236,6 +241,7 @@ List<Category> sampleCategories = [
     name: 'Utilities',
     icon: Icons.build,
     color: const Color.fromARGB(255, 142, 128, 6),
+    type: 'EXPENSES',
     subcategories: [
       Subcategory(
         name: 'Electricity',
@@ -283,6 +289,7 @@ List<Category> sampleCategories = [
     name: 'Travel',
     icon: Icons.airplanemode_active,
     color: Colors.lightGreen,
+    type: 'EXPENSES',
     subcategories: [
       Subcategory(
         name: 'Flights',
@@ -330,6 +337,7 @@ List<Category> sampleCategories = [
     name: 'Education',
     color: const Color.fromARGB(255, 71, 34, 194),
     icon: Icons.school,
+    type: 'EXPENSES',
     subcategories: [
       Subcategory(
         name: 'Tuition',
@@ -377,6 +385,7 @@ List<Category> sampleCategories = [
     name: 'Gifts',
     icon: Icons.card_giftcard,
     color: const Color.fromARGB(255, 32, 112, 198),
+    type: 'EXPENSES',
     subcategories: [
       Subcategory(
         name: 'Birthday',
@@ -419,6 +428,7 @@ List<Category> sampleCategories = [
     name: 'Miscellaneous',
     icon: Icons.category,
     color: const Color.fromARGB(255, 36, 59, 37),
+    type: 'EXPENSES',
     subcategories: [
       Subcategory(
         name: 'Charity',
@@ -464,9 +474,10 @@ List<Category> sampleCategories = [
   ),
 
   Category(
-    name: 'Income',
+    name: 'Bonus',
     icon: Icons.attach_money,
     color: Colors.green,
+    type: 'INCOME',
     subcategories: [
       Subcategory(name: 'Salary', icon: Icons.work, color: Colors.green),
       Subcategory(name: 'Business', icon: Icons.business, color: Colors.green),

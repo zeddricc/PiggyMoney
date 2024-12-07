@@ -25,8 +25,11 @@ class CategoryScreen extends ConsumerWidget {
                 itemCount: sampleCategories.length,
                 itemBuilder: (context, index) {
                   final category = sampleCategories[index];
-                  if ((transactionType == 'EXPENSES' && category.name == 'Expenses') ||
-                      (transactionType == 'INCOME' && category.name == 'Income')) {
+
+                  if ((transactionType == 'EXPENSES' &&
+                          category.type == 'EXPENSES') ||
+                      (transactionType == 'INCOME' &&
+                          category.type == 'INCOME')) {
                     return ExpansionTile(
                       leading: Container(
                         decoration: BoxDecoration(
@@ -34,24 +37,30 @@ class CategoryScreen extends ConsumerWidget {
                           color: category.color.withOpacity(0.2),
                         ),
                         padding: EdgeInsets.all(8),
-                        child: Icon(category.icon, size: 24, color: category.color),
+                        child: Icon(category.icon,
+                            size: 24, color: category.color),
                       ),
-                      title: Text(category.name, style: const TextStyle(fontSize: 18)),
+                      title: Text(category.name,
+                          style: const TextStyle(fontSize: 18)),
                       children: [
                         Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: GridView.builder(
                             physics: const NeverScrollableScrollPhysics(),
                             shrinkWrap: true,
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 4,
                               childAspectRatio: 0.8,
                               crossAxisSpacing: 8,
                               mainAxisSpacing: 8,
                             ),
-                            itemCount: category.subcategories.length,
+                            itemCount: category.subcategories.isNotEmpty
+                                ? category.subcategories.length
+                                : 0,
                             itemBuilder: (context, subIndex) {
-                              final subcategory = category.subcategories[subIndex];
+                              final subcategory =
+                                  category.subcategories[subIndex];
                               return GestureDetector(
                                 onTap: () {
                                   Navigator.pop(context, {
@@ -65,10 +74,12 @@ class CategoryScreen extends ConsumerWidget {
                                     Container(
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: subcategory.color.withOpacity(0.2),
+                                        color:
+                                            subcategory.color.withOpacity(0.2),
                                       ),
                                       padding: const EdgeInsets.all(12.0),
-                                      child: Icon(subcategory.icon, size: 24, color: subcategory.color),
+                                      child: Icon(subcategory.icon,
+                                          size: 24, color: subcategory.color),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(

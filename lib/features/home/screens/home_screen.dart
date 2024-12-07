@@ -10,6 +10,7 @@ import 'package:piggymoney/data/category_data.dart';
 import 'add_transaction_screen.dart'; // Import the AddTransactionScreen
 import 'all_transactions_screen.dart'; // Import the AllTransactionsScreen
 import 'package:piggymoney/helpers/number_helper.dart'; // Import the number_helper.dart
+import 'transaction_detail_screen.dart'; // Import the TransactionDetailScreen
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -125,19 +126,20 @@ class HomeScreen extends ConsumerWidget {
                             label: 'Expense',
                             color: Colors.red,
                             onTap: () async {
-                              // Navigate to Add Transaction Screen with Expense type
+                              // Navigate to Add Transaction Screen with Income type
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       const AddTransactionScreen(
                                           initialType:
-                                              'EXPENSES'), // Pass 'EXPENSES'
+                                              'INCOME'), // Pass 'INCOME'
                                 ),
                               );
+
                               // Use the result to refresh transactions
                               if (result == true) {
-                                ref.refresh(transactionServiceProvider);
+                                // Refresh the transaction list and ignore the result
                               }
                             },
                           ),
@@ -186,15 +188,17 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {
-                            // Navigate to All Transactions Screen
-                            Navigator.push(
+                          onPressed: () async {
+                            final result = await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
                                     const AllTransactionsScreen(),
                               ),
                             );
+                            if (result == true) {
+                              ref.refresh(transactionServiceProvider);
+                            }
                           },
                           child: Text(
                             'See all',
@@ -232,129 +236,151 @@ class HomeScreen extends ConsumerWidget {
                               final category = sampleCategories.firstWhere(
                                 (cat) => cat.name == transaction.category,
                                 orElse: () => Category(
-                                  name: 'Miscellaneous', // Default fallback
-                                  icon: Icons.category,
-                                  color: Colors.grey,
-                                  subcategories: [],
-                                ),
+                                    name: 'Miscellaneous', // Default fallback
+                                    icon: Icons.category,
+                                    color: Colors.grey,
+                                    subcategories: [],
+                                    type: 'EXPENSES'),
                               );
-                              return Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
+                              return GestureDetector(
+                                onTap: () async {
+                                  // Navigate to TransactionDetailScreen
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          TransactionDetailScreen(
+                                              transactionId: transaction.id),
                                     ),
-                                  ],
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryColor
-                                            .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
+                                  );
+
+                                  if (result == true) {
+                                    ref.refresh(transactionServiceProvider);
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
                                       ),
-                                      child: Icon(
-                                        category.icon,
-                                        color: category.color,
+                                    ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primaryColor
+                                              .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          category.icon,
+                                          color: category.color,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              transaction.category,
+                                              style: AppTheme.titleStyle
+                                                  .copyWith(fontSize: 13),
+                                            ),
+                                            if (transaction.note != null &&
+                                                transaction.note!
+                                                    .trim()
+                                                    .isNotEmpty)
+                                              Text(
+                                                transaction.note!,
+                                                style: AppTheme.smallTextStyle
+                                                    .copyWith(),
+                                              ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${DateFormat('dd-MM-yyyy').format(transaction.date)}',
+                                              style: AppTheme.smallTextStyle
+                                                  .copyWith(
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Row(
                                         children: [
                                           Text(
-                                            transaction.category,
-                                            style: AppTheme.titleStyle
-                                                .copyWith(fontSize: 13),
-                                          ),
-                                          if (transaction.note != null &&
-                                              transaction.note!
-                                                  .trim()
-                                                  .isNotEmpty)
-                                            Text(
-                                              transaction.note!,
-                                              style: AppTheme.smallTextStyle
-                                                  .copyWith(),
-                                            ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '${DateFormat('dd-MM-yyyy').format(transaction.date)}',
+                                            '${formatNumber(transaction.amount)} đ',
                                             style: AppTheme.smallTextStyle
                                                 .copyWith(
-                                              color: Colors.grey,
+                                              color: transaction.amount < 0
+                                                  ? Colors.red
+                                                  : Colors.green,
+                                              fontWeight: FontWeight.w600,
                                             ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                                Icons.remove_circle_outline),
+                                            onPressed: () async {
+                                              // Confirm deletion
+                                              final shouldDelete =
+                                                  await showDialog<bool>(
+                                                context: context,
+                                                builder: (context) {
+                                                  return AlertDialog(
+                                                    title: const Text(
+                                                        'Delete Transaction'),
+                                                    content: const Text(
+                                                        'Are you sure you want to delete this transaction?'),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop(
+                                                                    false), // No
+                                                        child: const Text(
+                                                            'Cancel'),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop(
+                                                                    true), // Yes
+                                                        child: const Text(
+                                                            'Delete'),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+
+                                              // If the user confirmed deletion, call the delete method
+                                              if (shouldDelete == true) {
+                                                await transactionService
+                                                    .deleteTransactionItem(
+                                                        transaction.id);
+                                                ref.refresh(
+                                                    transactionServiceProvider); // Refresh the transaction list
+                                              }
+                                            },
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          '${formatNumber(transaction.amount)} đ',
-                                          style:
-                                              AppTheme.smallTextStyle.copyWith(
-                                            color: transaction.amount < 0
-                                                ? Colors.red
-                                                : Colors.green,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(
-                                              Icons.remove_circle_outline),
-                                          onPressed: () async {
-                                            // Confirm deletion
-                                            final shouldDelete =
-                                                await showDialog<bool>(
-                                              context: context,
-                                              builder: (context) {
-                                                return AlertDialog(
-                                                  title: const Text(
-                                                      'Delete Transaction'),
-                                                  content: const Text(
-                                                      'Are you sure you want to delete this transaction?'),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.of(context)
-                                                              .pop(false), // No
-                                                      child:
-                                                          const Text('Cancel'),
-                                                    ),
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.of(context)
-                                                              .pop(true), // Yes
-                                                      child:
-                                                          const Text('Delete'),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            );
-
-                                            // If the user confirmed deletion, call the delete method
-                                            if (shouldDelete == true) {
-                                              await transactionService
-                                                  .deleteTransactionItem(
-                                                      transaction.id);
-                                              ref.refresh(
-                                                  transactionServiceProvider); // Refresh the transaction list
-                                            }
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               );
                             },

@@ -1,36 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:piggymoney/features/home/providers/transaction_service_provider.dart';
 import 'package:piggymoney/features/home/screens/add_transaction_screen.dart';
 import '../home/screens/home_screen.dart';
 import '../statistics/screens/statistics_screen.dart';
 import '../budget/screens/budget_screen.dart';
 import '../profile/screens/profile_screen.dart';
 
-class MainNavigation extends StatefulWidget {
+class MainNavigation extends ConsumerWidget {
   const MainNavigation({super.key});
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    int _selectedIndex = 0;
 
-class _MainNavigationState extends State<MainNavigation> {
-  int _selectedIndex = 0;
+    final List<Widget> _screens = [
+      const HomeScreen(),
+      const StatisticsScreen(),
+      AddTransactionScreen(),
+      const BudgetScreen(),
+      const ProfileScreen(),
+    ];
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const StatisticsScreen(),
-    AddTransactionScreen(),
-    const BudgetScreen(),
-    const ProfileScreen(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
+    void _onItemTapped(int index) {
       _selectedIndex = index;
-    });
-  }
+    }
 
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -58,11 +53,18 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
           BottomNavigationBarItem(
             icon: GestureDetector(
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                final result = await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AddTransactionScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const AddTransactionScreen(
+                        initialType: 'INCOME'), // Pass 'INCOME'
+                  ),
                 );
+                // Use the result to refresh transactions
+                if (result == true) {
+                  ref.refresh(transactionServiceProvider);
+                }
               },
               child: Container(
                 decoration: BoxDecoration(
@@ -102,4 +104,4 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
     );
   }
-} 
+}

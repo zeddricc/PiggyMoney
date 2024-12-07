@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+
 import 'package:realm/realm.dart';
 import 'package:piggymoney/models/transaction.dart';
 
@@ -77,7 +77,7 @@ class TransactionService {
     }
   }
 
-  Future<void> updateTransactionItem({
+  Future<void> updateTransactionItem(ObjectId transactionId, {
     required ObjectId id,
     required double amount,
     required String type,

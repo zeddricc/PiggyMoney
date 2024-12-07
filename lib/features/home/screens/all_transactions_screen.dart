@@ -48,8 +48,11 @@ class AllTransactionsScreen extends ConsumerWidget {
                             icon: Icons.category,
                             color: Colors.grey,
                             subcategories: [],
+                            type: 'EXPENSES'
                           ),
                         );
+
+                        
 
                         return Container(
                           padding: const EdgeInsets.all(12),

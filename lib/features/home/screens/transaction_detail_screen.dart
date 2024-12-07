@@ -2,23 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:piggymoney/core/theme/app_theme.dart';
 import 'package:piggymoney/widgets/custom_header.dart';
+import 'package:realm/realm.dart';
 import '../providers/transaction_service_provider.dart'; // Import the provider
 import '../providers/transaction_state.dart'; // Import the transaction state provider
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:piggymoney/features/home/screens/category_screen.dart'; // Import the CategoryScreen
-import 'package:piggymoney/data/category_data.dart'; // Import your sample data
 
-class AddTransactionScreen extends ConsumerStatefulWidget {
-  final String? initialType; // Add a parameter for the initial type
+class TransactionDetailScreen extends ConsumerStatefulWidget {
+  final ObjectId transactionId; // ID của giao dịch
 
-  const AddTransactionScreen({super.key, this.initialType});
+  const TransactionDetailScreen({super.key, required this.transactionId});
 
   @override
-  _AddTransactionScreenState createState() => _AddTransactionScreenState();
+  _TransactionDetailScreenState createState() =>
+      _TransactionDetailScreenState();
 }
 
-class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
+class _TransactionDetailScreenState
+    extends ConsumerState<TransactionDetailScreen> {
   late TextEditingController _amountController;
   late TextEditingController _noteController;
   String _repeatPattern = 'NEVER';
@@ -28,15 +30,19 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   @override
   void initState() {
     super.initState();
-    _amountController = TextEditingController(text: '0');
-    _noteController = TextEditingController();
+    final transactionService = ref.read(transactionServiceProvider);
+    final transaction = transactionService.getAllTransactions().firstWhere(
+          (transaction) => transaction.id == widget.transactionId,
+          orElse: () => throw Exception('Transaction not found'),
+        );
 
-    // Delay the modification
-    Future.microtask(() {
-      if (widget.initialType != null) {
-        ref.read(transactionProvider.notifier).updateType(widget.initialType!);
-      }
-    });
+    _amountController =
+        TextEditingController(text: transaction.amount.toString());
+    _noteController = TextEditingController(text: transaction.note ?? '');
+    _repeatPattern = transaction.repeatPattern;
+    selectedCategory = transaction.category; // Giả sử bạn có cách lấy danh mục
+    selectedSubcategory =
+        ''; // Nếu có subcategory, bạn có thể lấy từ transaction
   }
 
   @override
@@ -62,7 +68,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           children: [
             // Header with Back Button
             CustomHeader(
-              title: 'Add Transaction',
+              title: 'Transaction Details',
               onBackPressed: () {
                 Navigator.pop(context); // Navigate back
               },
@@ -113,6 +119,34 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 ],
               ),
             ),
+            // Display Amount with Color Change
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    'Current Amount:',
+                    style: AppTheme.bodyStyle,
+                  ),
+                  // Display the amount with handling for long numbers
+                  Expanded(
+                    child: Text(
+                      '${double.parse(_amountController.text.replaceAll(',', '')).abs()} đ', 
+                      style: AppTheme.headingStyle.copyWith(
+                        fontSize: 24,
+                        color: double.parse(_amountController.text.replaceAll(',', '')) < 0
+                            ? Colors.red 
+                            : Colors.black, 
+                      ),
+                      overflow: TextOverflow.ellipsis, 
+                      maxLines: 1, 
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
             // Transaction Type
             ToggleButtons(
               borderColor: Colors.transparent,
@@ -150,21 +184,16 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             ListTile(
               title: Text(
                   selectedCategory != null && selectedSubcategory != null
-                      ? '$selectedCategory - $selectedSubcategory'
-                      : 'Select Category and Subcategory'),
+                      ? '$selectedCategory $selectedSubcategory'
+                      : 'Select Category'),
               leading: Icon(Icons.category),
               onTap: () async {
                 // Navigate to CategoryScreen and wait for the result
-                // Before navigating to CategoryScreen
-                print(
-                    'Navigating to CategoryScreen with transaction type: ${transactionState.selectedType}');
-
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => CategoryScreen(
-                      transactionType: transactionState.selectedType,
-                    ),
+                        transactionType: transactionState.selectedType),
                   ),
                 );
 
@@ -180,8 +209,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 }
               },
             ),
-
-            
             const SizedBox(height: 20),
             // Wallet Dropdown
             Padding(
@@ -267,19 +294,19 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 style: AppTheme.primaryButtonStyle,
                 // Trong phần onPressed của nút Save
                 onPressed: () {
-                  // Log before adding the transaction
+                  // Log before updating the transaction
                   print(
-                      'Attempting to add transaction: Amount: ${_amountController.text}, Type: ${transactionState.selectedType}, Category: ${transactionState.selectedCategory}, Wallet: ${transactionState.selectedWallet}, Note: ${_noteController.text}, Date: ${transactionState.selectedDate}, Repeat Pattern: $_repeatPattern');
+                      'Attempting to update transaction: Amount: ${_amountController.text}, Type: ${transactionState.selectedType}, Category: ${transactionState.selectedCategory}, Wallet: ${transactionState.selectedWallet}, Note: ${_noteController.text}, Date: ${transactionState.selectedDate}, Repeat Pattern: $_repeatPattern');
 
-                  // Call the addTransactionItem function
-                  transactionService.addTransactionItem(
-                    amount: transactionState.selectedType == 'EXPENSES'
-                        ? -double.parse(
-                            _amountController.text.replaceAll(',', ''))
-                        : double.parse(
-                            _amountController.text.replaceAll(',', '')),
+                  // Call the updateTransactionItem function
+                  transactionService.updateTransactionItem(
+                    widget.transactionId, // ID của giao dịch
+                    id: widget
+                        .transactionId, // ID của giao dịch trong cơ sở dữ liệu
+                    amount: double.parse(
+                        _amountController.text.replaceAll(',', '')),
                     type: transactionState.selectedType,
-                    category: transactionState.selectedCategory,
+                    category: selectedCategory!,
                     wallet: transactionState.selectedWallet,
                     note: _noteController.text,
                     date: transactionState.selectedDate,
@@ -287,7 +314,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   );
 
                   Navigator.pop(context,
-                      true); // Pass true to indicate a transaction was added
+                      true); // Pass true to indicate a transaction was updated
                 },
                 child: const Text(
                   'Save',
