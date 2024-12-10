@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:piggymoney/core/theme/app_theme.dart';
-import 'package:piggymoney/widgets/custom_header.dart';
-import '../providers/transaction_service_provider.dart'; // Import the provider
-import '../providers/transaction_state.dart'; // Import the transaction state provider
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:piggymoney/core/theme/app_theme.dart';
+import 'package:piggymoney/features/services/wallet_service_provider.dart';
+import 'package:piggymoney/models/category.dart';
+import 'package:piggymoney/models/wallet.dart';
+import 'package:piggymoney/widgets/custom_header.dart';
+import '../providers/transaction_service_provider.dart';
+import '../providers/transaction_state.dart';
 import 'package:intl/intl.dart';
-import 'package:piggymoney/features/home/screens/category_screen.dart'; // Import the CategoryScreen
-import 'package:piggymoney/data/category_data.dart'; // Import your sample data
+import 'package:piggymoney/features/home/screens/category_screen.dart';
+import 'package:piggymoney/data/category_data.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
-  final String? initialType; // Add a parameter for the initial type
+  final String? initialType;
 
   const AddTransactionScreen({super.key, this.initialType});
 
@@ -24,6 +27,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   String _repeatPattern = 'NEVER';
   String? selectedCategory;
   String? selectedSubcategory;
+  IconData? selectedCategoryIcon;
+  IconData? selectedSubcategoryIcon;
+  String? selectedWallet; // Variable to hold the selected wallet
 
   @override
   void initState() {
@@ -31,7 +37,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     _amountController = TextEditingController(text: '0');
     _noteController = TextEditingController();
 
-    // Delay the modification
     Future.microtask(() {
       if (widget.initialType != null) {
         ref.read(transactionProvider.notifier).updateType(widget.initialType!);
@@ -41,8 +46,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   @override
   void dispose() {
-    _amountController.dispose(); // Dispose the controller
-    _noteController.dispose(); // Dispose the note controller
+    _amountController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -50,21 +55,22 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   Widget build(BuildContext context) {
     final transactionService = ref.watch(transactionServiceProvider);
     final transactionState = ref.watch(transactionProvider);
+    final walletService =
+        ref.watch(walletServiceProvider); // Access wallet service
 
     // Sample data for dropdowns
     List<String> transactionTypes = ['EXPENSES', 'INCOME', 'TRANSFER'];
-    List<String> wallets = ['Spending', 'Savings', 'Investment'];
+    List<WalletItem> wallets = walletService.getAllWallets(); // Get all wallets
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            // Header with Back Button
             CustomHeader(
               title: 'Add Transaction',
               onBackPressed: () {
-                Navigator.pop(context); // Navigate back
+                Navigator.pop(context);
               },
             ),
             // Amount
@@ -113,6 +119,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 ],
               ),
             ),
+            // Wallet Dropdown
+            
             // Transaction Type
             ToggleButtons(
               borderColor: Colors.transparent,
@@ -145,17 +153,53 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 ),
               ],
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: DropdownButton<String>(
+                value: selectedWallet,
+                isExpanded: true,
+                hint: Text('Select Wallet'),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedWallet = newValue; // Update selected wallet
+                  });
+                },
+                items:
+                    wallets.map<DropdownMenuItem<String>>((WalletItem wallet) {
+                  return DropdownMenuItem<String>(
+                    value: wallet.id,
+                    child: Text(wallet.name),
+                  );
+                }).toList(),
+              ),
+            ),
             const SizedBox(height: 20),
             // Category and Subcategory Selection
             ListTile(
               title: Text(
-                  selectedCategory != null && selectedSubcategory != null
-                      ? '$selectedCategory - $selectedSubcategory'
-                      : 'Select Category and Subcategory'),
-              leading: Icon(Icons.category),
+                selectedCategory != null && selectedSubcategory != null
+                    ? '$selectedSubcategory'
+                    : 'Select Category',
+              ),
+              leading: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selectedSubcategoryIcon != null
+                      ? getSubcategoryColor(
+                              selectedCategory, selectedSubcategory)
+                          .withOpacity(0.2)
+                      : Colors.grey.withOpacity(0.2),
+                ),
+                padding: EdgeInsets.all(8),
+                child: Icon(
+                  selectedSubcategoryIcon ?? Icons.category,
+                  size: 24,
+                  color: getSubcategoryColor(
+                      selectedCategory, selectedSubcategory),
+                ),
+              ), // Use the selected subcategory icon or default
               onTap: () async {
                 // Navigate to CategoryScreen and wait for the result
-                // Before navigating to CategoryScreen
                 print(
                     'Navigating to CategoryScreen with transaction type: ${transactionState.selectedType}');
 
@@ -174,6 +218,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     selectedCategory = result['category'];
                     selectedSubcategory = result['subcategory'];
 
+                    // Get the icon based on the selected subcategory
+                    selectedSubcategoryIcon = getSubcategoryIcon(
+                        selectedCategory,
+                        selectedSubcategory); // Call the method to get the subcategory icon
                     ref.read(transactionProvider.notifier).updateCategory(
                         selectedCategory!); // Update state with icon
                   });
@@ -181,37 +229,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               },
             ),
 
-            
-            const SizedBox(height: 20),
-            // Wallet Dropdown
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: DropdownButton<String>(
-                value: transactionState.selectedWallet,
-                isExpanded: true,
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    ref
-                        .read(transactionProvider.notifier)
-                        .updateWallet(newValue);
-                  }
-                },
-                items: wallets.map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Row(
-                      children: [
-                        Icon(Icons.wallet, size: 24.0),
-                        SizedBox(
-                          width: 8,
-                        ),
-                        Text(value),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
             const SizedBox(height: 20),
             // Note Text Input
             Padding(
@@ -265,29 +282,54 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               padding: const EdgeInsets.all(16),
               child: TextButton(
                 style: AppTheme.primaryButtonStyle,
-                // Trong phần onPressed của nút Save
                 onPressed: () {
-                  // Log before adding the transaction
-                  print(
-                      'Attempting to add transaction: Amount: ${_amountController.text}, Type: ${transactionState.selectedType}, Category: ${transactionState.selectedCategory}, Wallet: ${transactionState.selectedWallet}, Note: ${_noteController.text}, Date: ${transactionState.selectedDate}, Repeat Pattern: $_repeatPattern');
+                  // Kiểm tra các điều kiện bắt buộc
+                  if (selectedWallet == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please select a wallet')),
+                    );
+                    return;
+                  }
 
-                  // Call the addTransactionItem function
+                  if (_amountController.text == '0' || _amountController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter an amount')),
+                    );
+                    return;
+                  }
+
+                  // Chuyển đổi số tiền từ string sang double
+                  final amount = double.parse(_amountController.text.replaceAll(',', ''));
+
+                  // Log trước khi thêm giao dịch
+                  print(
+                      'Thêm giao dịch mới: Số tiền: $amount, Loại: ${transactionState.selectedType}, Danh mục: ${transactionState.selectedCategory}, Ví: $selectedWallet, Ghi chú: ${_noteController.text}');
+
+                  // Cập nhật số dư trong ví
+                  walletService.processTransactionAmount(
+                    selectedWallet!,
+                    amount,
+                    transactionState.selectedType,
+                  );
+
+                  // Thêm giao dịch vào lịch sử
                   transactionService.addTransactionItem(
-                    amount: transactionState.selectedType == 'EXPENSES'
-                        ? -double.parse(
-                            _amountController.text.replaceAll(',', ''))
-                        : double.parse(
-                            _amountController.text.replaceAll(',', '')),
+                    amount: amount,
                     type: transactionState.selectedType,
                     category: transactionState.selectedCategory,
-                    wallet: transactionState.selectedWallet,
+                    wallet: selectedWallet ?? '',
                     note: _noteController.text,
                     date: transactionState.selectedDate,
                     repeatPattern: _repeatPattern,
                   );
 
-                  Navigator.pop(context,
-                      true); // Pass true to indicate a transaction was added
+                  // Hiển thị thông báo thành công
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Transaction added successfully')),
+                  );
+
+                  // Quay lại màn hình trước
+                  Navigator.pop(context, true);
                 },
                 child: const Text(
                   'Save',
@@ -299,5 +341,61 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         ),
       ),
     );
+  }
+
+  IconData getCategoryIcon(String? category) {
+    // This method should return the icon based on the category name
+    final foundCategory = sampleCategories.firstWhere(
+      (cat) => cat.name == category,
+      orElse: () => Category(
+          name: 'Miscellaneous',
+          icon: Icons.category,
+          color: Colors.grey,
+          subcategories: [],
+          type: 'EXPENSES'),
+    );
+    return foundCategory.icon; // Return the icon of the found category
+  }
+
+  IconData getSubcategoryIcon(String? category, String? subcategory) {
+    // This method should return the icon based on the category and subcategory names
+    final foundCategory = sampleCategories.firstWhere(
+      (cat) => cat.name == category,
+      orElse: () => Category(
+          name: 'Miscellaneous',
+          icon: Icons.category,
+          color: Colors.grey,
+          subcategories: [],
+          type: 'EXPENSES'),
+    );
+
+    final foundSubcategory = foundCategory.subcategories.firstWhere(
+      (sub) => sub.name == subcategory,
+      orElse: () => Subcategory(
+          name: 'Miscellaneous', icon: Icons.category, color: Colors.grey),
+    );
+
+    return foundSubcategory.icon; // Return the icon of the found subcategory
+  }
+
+  Color getSubcategoryColor(String? category, String? subcategory) {
+    // This method should return the color based on the category and subcategory names
+    final foundCategory = sampleCategories.firstWhere(
+      (cat) => cat.name == category,
+      orElse: () => Category(
+          name: 'Miscellaneous',
+          icon: Icons.category,
+          color: Colors.grey,
+          subcategories: [],
+          type: 'EXPENSES'),
+    );
+
+    final foundSubcategory = foundCategory.subcategories.firstWhere(
+      (sub) => sub.name == subcategory,
+      orElse: () => Subcategory(
+          name: 'Miscellaneous', icon: Icons.category, color: Colors.grey),
+    );
+
+    return foundSubcategory.color; // Return the color of the found subcategory
   }
 }

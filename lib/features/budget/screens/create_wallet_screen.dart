@@ -5,22 +5,32 @@ import 'package:piggymoney/features/services/wallet_service_provider.dart'; // I
 import 'package:piggymoney/models/wallet.dart';
 
 class CreateWalletScreen extends ConsumerWidget {
-  final Wallet? wallet; // Optional wallet for updating
+  final WalletItem? wallet; // Optional wallet for updating
 
   const CreateWalletScreen({super.key, this.wallet});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final walletService = ref.watch(walletServiceProvider); // Use the provider
-    final TextEditingController _nameController = TextEditingController(text: wallet?.name ?? '');
-    final TextEditingController _balanceController = TextEditingController(text: wallet?.initBalance.toString() ?? '');
-    final TextEditingController _noteController = TextEditingController(text: wallet?.note ?? '');
+    final TextEditingController _nameController =
+        TextEditingController(text: wallet?.name ?? '');
+    final TextEditingController _balanceController =
+        TextEditingController(text: wallet?.initBalance.toString() ?? '');
+    final TextEditingController _noteController =
+        TextEditingController(text: wallet?.note ?? '');
     String _selectedType = wallet?.walletType ?? 'Cash'; // Default wallet type
-    String _selectedCurrency = wallet?.currency ?? 'USD'; // Default currency
+    String _selectedCurrency = wallet?.currency ?? 'VND'; // Default currency
 
     // List of wallet types and currencies
-    final List<String> walletTypes = ['Investment', 'Bank', 'Credit Card', 'E-Wallet', 'Cash', 'Others'];
-    final List<String> currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD'];
+    final List<String> walletTypes = [
+      'Investment',
+      'Bank',
+      'Credit Card',
+      'E-Wallet',
+      'Cash',
+      'Others'
+    ];
+    final List<String> currencies = ['VND', 'USD', 'EUR', 'GBP', 'JPY', 'AUD'];
 
     return Scaffold(
       appBar: AppBar(
@@ -97,23 +107,26 @@ class CreateWalletScreen extends ConsumerWidget {
             ElevatedButton(
               onPressed: () {
                 final walletName = _nameController.text;
-                final initialBalance = double.tryParse(_balanceController.text) ?? 0.0;
+                final initialBalance =
+                    double.tryParse(_balanceController.text) ?? 0.0;
                 if (walletName.isNotEmpty) {
-                  final newWallet = Wallet(
-                    id: wallet?.id ?? DateTime.now().toString(),
-                    name: walletName,
-                    initBalance: initialBalance,
-                    walletType: _selectedType,
-                    currency: _selectedCurrency,
-                    note: _noteController.text,
-                  );
+                  final newWallet = WalletItem(
+                      DateTime.now().toString(),
+                      walletName,
+                      initialBalance,
+                      _selectedType, // Changed from walletType to type (or the correct name)
 
+                      _selectedCurrency, // Ensure this matches the model
+                      note: _noteController.text);
                   if (wallet == null) {
                     walletService.addWallet(newWallet); // Add new wallet
-                    print('Creating new wallet: ${newWallet.name}'); // Debug statement
+                    print(
+                        'Creating new wallet: ${newWallet.name}'); // Debug statement
                   } else {
+                    print('Updating wallet with ID: ${wallet?.id}'); // Log the ID being updated
                     walletService.updateWallet(newWallet); // Update existing wallet
-                    print('Updating wallet: ${newWallet.name}'); // Debug statement
+                    print(
+                        'Updating wallet: ${newWallet.name}'); // Debug statement
                   }
                   Navigator.pop(context, true); // Return to the previous screen
                 } else {
@@ -127,4 +140,4 @@ class CreateWalletScreen extends ConsumerWidget {
       ),
     );
   }
-} 
+}

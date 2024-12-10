@@ -1,4 +1,3 @@
-
 import 'package:realm/realm.dart';
 import 'package:piggymoney/models/transaction.dart';
 
@@ -21,9 +20,11 @@ class TransactionService {
     required DateTime date,
     required String repeatPattern,
   }) async {
+    final adjustedAmount = type == 'EXPENSES' ? -amount.abs() : amount.abs();
+
     final transactionItem = TransactionItem(
       ObjectId(),
-      amount,
+      adjustedAmount,
       type,
       category,
       wallet,
@@ -35,12 +36,7 @@ class TransactionService {
     _realm.write(() {
       _realm.add(transactionItem);
       print('Transaction added: ${transactionItem.toEJson()}');
-
-      if (type == 'EXPENSES') {
-        _totalBalance -= amount;
-      } else if (type == 'INCOME') {
-        _totalBalance += amount;
-      }
+      _totalBalance = calculateTotalBalance();
     });
 
     print('Current total balance: $_totalBalance');
@@ -48,8 +44,13 @@ class TransactionService {
 
   double calculateTotalBalance() {
     final transactions = getAllTransactions();
-    return transactions.fold(
-        0.0, (sum, transaction) => sum + transaction.amount);
+    return transactions.fold(0.0, (sum, transaction) => sum + transaction.amount);
+  }
+
+  List<TransactionItem> getSortedTransactions() {
+    final transactions = getAllTransactions();
+    transactions.sort((a, b) => b.date.compareTo(a.date));
+    return transactions;
   }
 
   double get totalBalance => _totalBalance;

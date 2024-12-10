@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:piggymoney/core/theme/app_theme.dart';
+import 'package:piggymoney/features/services/wallet_service_provider.dart';
+import 'package:piggymoney/models/wallet.dart';
 import 'package:piggymoney/widgets/custom_header.dart';
 import 'package:realm/realm.dart';
 import '../providers/transaction_service_provider.dart'; // Import the provider
@@ -26,6 +28,9 @@ class _TransactionDetailScreenState
   String _repeatPattern = 'NEVER';
   String? selectedCategory;
   String? selectedSubcategory;
+  String? selectedWallet;
+  late String transactionType;
+  late DateTime selectedDate;
 
   @override
   void initState() {
@@ -36,19 +41,27 @@ class _TransactionDetailScreenState
           orElse: () => throw Exception('Transaction not found'),
         );
 
-    _amountController =
-        TextEditingController(text: transaction.amount.toString());
+    _amountController = TextEditingController(text: transaction.amount.abs().toString());
     _noteController = TextEditingController(text: transaction.note ?? '');
     _repeatPattern = transaction.repeatPattern;
-    selectedCategory = transaction.category; // Giả sử bạn có cách lấy danh mục
-    selectedSubcategory =
-        ''; // Nếu có subcategory, bạn có thể lấy từ transaction
+    selectedCategory = transaction.category;
+    selectedWallet = transaction.wallet;
+    transactionType = transaction.type;
+    selectedDate = transaction.date;
+
+    // Cập nhật state
+    Future.microtask(() {
+      ref.read(transactionProvider.notifier).updateType(transactionType);
+      ref.read(transactionProvider.notifier).updateCategory(selectedCategory!);
+      ref.read(transactionProvider.notifier).updateDate(selectedDate);
+      ref.read(transactionProvider.notifier).updateWallet(selectedWallet!);
+    });
   }
 
   @override
   void dispose() {
-    _amountController.dispose(); // Dispose the controller
-    _noteController.dispose(); // Dispose the note controller
+    _amountController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -56,24 +69,18 @@ class _TransactionDetailScreenState
   Widget build(BuildContext context) {
     final transactionService = ref.watch(transactionServiceProvider);
     final transactionState = ref.watch(transactionProvider);
-
-    // Sample data for dropdowns
-    List<String> transactionTypes = ['EXPENSES', 'INCOME', 'TRANSFER'];
-    List<String> wallets = ['Spending', 'Savings', 'Investment'];
+    final walletService = ref.watch(walletServiceProvider);
+    final wallets = walletService.getAllWallets();
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            // Header with Back Button
             CustomHeader(
-              title: 'Transaction Details',
-              onBackPressed: () {
-                Navigator.pop(context); // Navigate back
-              },
+              title: 'Chi tiết giao dịch',
+              onBackPressed: () => Navigator.pop(context),
             ),
-            // Amount
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Row(
@@ -86,20 +93,21 @@ class _TransactionDetailScreenState
                         FilteringTextInputFormatter.digitsOnly,
                         TextInputFormatter.withFunction((oldValue, newValue) {
                           if (newValue.text.isEmpty) return newValue;
-                          final String formatted =
-                              newValue.text.replaceAllMapped(
+                          final String formatted = newValue.text.replaceAllMapped(
                             RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                             (Match m) => '${m[1]},',
                           );
                           return TextEditingValue(
                             text: formatted,
-                            selection: TextSelection.collapsed(
-                                offset: formatted.length),
+                            selection: TextSelection.collapsed(offset: formatted.length),
                           );
                         }),
                       ],
                       textAlign: TextAlign.end,
-                      style: AppTheme.headingStyle.copyWith(fontSize: 30),
+                      style: AppTheme.headingStyle.copyWith(
+                        fontSize: 30,
+                        color: transactionType == 'EXPENSES' ? Colors.red : Colors.green,
+                      ),
                       decoration: const InputDecoration(
                         hintText: '0',
                         border: InputBorder.none,
@@ -119,207 +127,197 @@ class _TransactionDetailScreenState
                 ],
               ),
             ),
-            // Display Amount with Color Change
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    'Current Amount:',
-                    style: AppTheme.bodyStyle,
-                  ),
-                  // Display the amount with handling for long numbers
-                  Expanded(
-                    child: Text(
-                      '${double.parse(_amountController.text.replaceAll(',', '')).abs()} đ', 
-                      style: AppTheme.headingStyle.copyWith(
-                        fontSize: 24,
-                        color: double.parse(_amountController.text.replaceAll(',', '')) < 0
-                            ? Colors.red 
-                            : Colors.black, 
-                      ),
-                      overflow: TextOverflow.ellipsis, 
-                      maxLines: 1, 
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
             // Transaction Type
             ToggleButtons(
               borderColor: Colors.transparent,
               isSelected: [
-                transactionState.selectedType == 'EXPENSES',
-                transactionState.selectedType == 'INCOME',
-                transactionState.selectedType == 'TRANSFER'
+                transactionType == 'EXPENSES',
+                transactionType == 'INCOME',
+                transactionType == 'TRANSFER'
               ],
               onPressed: (int index) {
-                // Handle toggle logic
-                ref
-                    .read(transactionProvider.notifier)
-                    .updateType(transactionTypes[index]);
+                setState(() {
+                  transactionType = ['EXPENSES', 'INCOME', 'TRANSFER'][index];
+                });
+                ref.read(transactionProvider.notifier).updateType(transactionType);
               },
               children: [
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text('EXPENSES',
                       style: AppTheme.bodyStyle.copyWith(fontSize: 14)),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text('INCOME',
                       style: AppTheme.bodyStyle.copyWith(fontSize: 14)),
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text('TRANSFER',
                       style: AppTheme.bodyStyle.copyWith(fontSize: 14)),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            // Category and Subcategory Selection
+            // Category Selection
             ListTile(
               title: Text(
-                  selectedCategory != null && selectedSubcategory != null
-                      ? '$selectedCategory $selectedSubcategory'
-                      : 'Select Category'),
-              leading: Icon(Icons.category),
+                selectedCategory ?? 'Select Category',
+                style: AppTheme.bodyStyle,
+              ),
+              leading: const Icon(Icons.category),
               onTap: () async {
-                // Navigate to CategoryScreen and wait for the result
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => CategoryScreen(
-                        transactionType: transactionState.selectedType),
+                      transactionType: transactionType,
+                    ),
                   ),
                 );
 
-                // If a category and subcategory were selected, update the state
                 if (result != null) {
                   setState(() {
                     selectedCategory = result['category'];
                     selectedSubcategory = result['subcategory'];
-
-                    ref.read(transactionProvider.notifier).updateCategory(
-                        selectedCategory!); // Update state with icon
                   });
+                  ref.read(transactionProvider.notifier).updateCategory(selectedCategory!);
                 }
               },
             ),
             const SizedBox(height: 20),
-            // Wallet Dropdown
+            // Wallet Selection
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: DropdownButton<String>(
-                value: transactionState.selectedWallet,
+                value: selectedWallet,
                 isExpanded: true,
+                hint: const Text('Select Wallet'),
                 onChanged: (String? newValue) {
+                  setState(() {
+                    selectedWallet = newValue;
+                  });
                   if (newValue != null) {
-                    ref
-                        .read(transactionProvider.notifier)
-                        .updateWallet(newValue);
+                    ref.read(transactionProvider.notifier).updateWallet(newValue);
                   }
                 },
-                items: wallets.map<DropdownMenuItem<String>>((String value) {
+                items: wallets.map<DropdownMenuItem<String>>((WalletItem wallet) {
                   return DropdownMenuItem<String>(
-                    value: value,
-                    child: Row(
-                      children: [
-                        Icon(Icons.wallet, size: 24.0),
-                        SizedBox(
-                          width: 8,
-                        ),
-                        Text(value),
-                      ],
-                    ),
+                    value: wallet.id,
+                    child: Text(wallet.name),
                   );
                 }).toList(),
               ),
             ),
             const SizedBox(height: 20),
-            // Note Text Input
+            // Note Input
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
-                controller: _noteController, // Use the note controller
-                decoration: InputDecoration(
+                controller: _noteController,
+                decoration: const InputDecoration(
                   hintText: 'Enter note',
-                  hintStyle: TextStyle(color: Colors.grey),
-                  prefixIcon: Icon(Icons.note, size: 24.0),
-                  fillColor: Colors.white,
+                  prefixIcon: Icon(Icons.note),
+                  border: OutlineInputBorder(),
                 ),
-                // Allow multiple lines for notes
               ),
             ),
             const SizedBox(height: 20),
-            // Date Picker
+            // Date Selection
             ListTile(
-              leading: const Icon(Icons.calendar_today,
-                  color: AppTheme.secondaryColor),
+              leading: const Icon(Icons.calendar_today),
               title: Text(
-                  ' ${DateFormat('dd-MM-yyyy').format(transactionState.selectedDate)}',
-                  style: AppTheme.bodyStyle.copyWith(color: Colors.black)),
+                DateFormat('dd-MM-yyyy').format(selectedDate),
+                style: AppTheme.bodyStyle,
+              ),
               onTap: () async {
-                DateTime? pickedDate = await showDatePicker(
+                final picked = await showDatePicker(
                   context: context,
-                  initialDate: transactionState.selectedDate,
+                  initialDate: selectedDate,
                   firstDate: DateTime(2000),
                   lastDate: DateTime(2101),
                 );
-                if (pickedDate != null &&
-                    pickedDate != transactionState.selectedDate) {
-                  ref.read(transactionProvider.notifier).updateDate(pickedDate);
-                  print(
-                      'Selected Date: ${DateFormat('yyyy-MM-dd').format(transactionState.selectedDate)}'); // Debugging statement
+                if (picked != null) {
+                  setState(() {
+                    selectedDate = picked;
+                  });
+                  ref.read(transactionProvider.notifier).updateDate(picked);
                 }
               },
             ),
-            // Repeat
-            ListTile(
-              leading: const Icon(Icons.repeat, color: AppTheme.secondaryColor),
-              title: Text('Repeat: $_repeatPattern', style: AppTheme.bodyStyle),
-              onTap: () {
-                // Handle repeat selection
-              },
-            ),
             const Spacer(),
-            // Save Button
-            Container(
-              width: double.infinity,
+            // Action Buttons
+            Padding(
               padding: const EdgeInsets.all(16),
-              child: TextButton(
-                style: AppTheme.primaryButtonStyle,
-                // Trong phần onPressed của nút Save
-                onPressed: () {
-                  // Log before updating the transaction
-                  print(
-                      'Attempting to update transaction: Amount: ${_amountController.text}, Type: ${transactionState.selectedType}, Category: ${transactionState.selectedCategory}, Wallet: ${transactionState.selectedWallet}, Note: ${_noteController.text}, Date: ${transactionState.selectedDate}, Repeat Pattern: $_repeatPattern');
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onPressed: () async {
+                        final shouldDelete = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Transaction'),
+                            content: const Text('Are you sure you want to delete this transaction?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
 
-                  // Call the updateTransactionItem function
-                  transactionService.updateTransactionItem(
-                    widget.transactionId, // ID của giao dịch
-                    id: widget
-                        .transactionId, // ID của giao dịch trong cơ sở dữ liệu
-                    amount: double.parse(
-                        _amountController.text.replaceAll(',', '')),
-                    type: transactionState.selectedType,
-                    category: selectedCategory!,
-                    wallet: transactionState.selectedWallet,
-                    note: _noteController.text,
-                    date: transactionState.selectedDate,
-                    repeatPattern: _repeatPattern,
-                  );
-
-                  Navigator.pop(context,
-                      true); // Pass true to indicate a transaction was updated
-                },
-                child: const Text(
-                  'Save',
-                  style: AppTheme.buttonTextStyle,
-                ),
+                        if (shouldDelete == true) {
+                          await transactionService.deleteTransactionItem(widget.transactionId);
+                          if (mounted) {
+                            Navigator.pop(context, true);
+                          }
+                        }
+                      },
+                      child: Text(
+                        'Delete',
+                        style: AppTheme.buttonTextStyle.copyWith(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextButton(
+                      style: AppTheme.primaryButtonStyle,
+                      onPressed: () async {
+                        final amount = double.parse(_amountController.text.replaceAll(',', ''));
+                        await transactionService.updateTransactionItem(
+                          widget.transactionId,
+                          id: widget.transactionId,
+                          amount: transactionType == 'EXPENSES' ? -amount.abs() : amount.abs(),
+                          type: transactionType,
+                          category: selectedCategory!,
+                          wallet: selectedWallet!,
+                          note: _noteController.text,
+                          date: selectedDate,
+                          repeatPattern: _repeatPattern,
+                        );
+                        if (mounted) {
+                          Navigator.pop(context, true);
+                        }
+                      },
+                      child: const Text(
+                        'Save',
+                        style: AppTheme.buttonTextStyle,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

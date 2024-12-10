@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:piggymoney/core/theme/app_theme.dart';
 import 'package:piggymoney/features/home/providers/transaction_service_provider.dart';
+import 'package:piggymoney/features/home/screens/transaction_detail_screen.dart';
 import 'package:piggymoney/helpers/number_helper.dart';
 import 'package:piggymoney/models/category.dart';
 import 'package:piggymoney/data/category_data.dart';
@@ -72,55 +73,74 @@ class AllTransactionsScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TransactionDetailScreen(
+                                    transactionId: transaction.id,
+                                  ),
                                 ),
-                                child: Icon(
-                                  category.icon,
-                                  color: category.color,
+                              );
+                              if (result == true) {
+                                ref.refresh(transactionServiceProvider);
+                              }
+                            },
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    category.icon,
+                                    color: category.color,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      transaction.category,
-                                      style: AppTheme.titleStyle.copyWith(
-                                          fontSize: 16, fontWeight: FontWeight.bold),
-                                    ),
-                                    if (transaction.note != null &&
-                                        transaction.note!.trim().isNotEmpty)
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
                                       Text(
-                                        transaction.note!,
-                                        style: AppTheme.smallTextStyle.copyWith(),
+                                        transaction.category,
+                                        style: AppTheme.titleStyle.copyWith(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${DateFormat('dd-MM-yyyy').format(transaction.date)}',
-                                      style: AppTheme.smallTextStyle.copyWith(
-                                        color: Colors.grey,
+                                      if (transaction.note != null &&
+                                          transaction.note!.trim().isNotEmpty)
+                                        Text(
+                                          transaction.note!,
+                                          style: AppTheme.smallTextStyle,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        DateFormat('dd/MM/yyyy').format(transaction.date),
+                                        style: AppTheme.smallTextStyle.copyWith(
+                                          color: Colors.grey,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '${formatNumber(transaction.amount)} đ',
-                                style: AppTheme.smallTextStyle.copyWith(
-                                  color: transaction.amount < 0
-                                      ? Colors.red
-                                      : Colors.green,
-                                  fontWeight: FontWeight.w600,
+                                Text(
+                                  '${formatNumber(transaction.amount)} đ',
+                                  style: AppTheme.smallTextStyle.copyWith(
+                                    color: transaction.amount < 0
+                                        ? Colors.red
+                                        : Colors.green,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         );
                       },

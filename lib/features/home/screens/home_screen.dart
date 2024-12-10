@@ -133,7 +133,7 @@ class HomeScreen extends ConsumerWidget {
                                   builder: (context) =>
                                       const AddTransactionScreen(
                                           initialType:
-                                              'INCOME'), // Pass 'INCOME'
+                                              'EXPENSES'), // Pass 'INCOME'
                                 ),
                               );
 

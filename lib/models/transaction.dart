@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+
 import 'package:realm/realm.dart';
 
 part 'transaction.realm.dart';
