@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:piggymoney/features/home/providers/balance_visibility_provider.dart';
 import 'package:piggymoney/features/home/providers/transaction_service_provider.dart';
 import 'package:piggymoney/features/home/widget/quick_action_button.dart';
+import 'package:piggymoney/features/services/wallet_service_provider.dart';
 import 'package:piggymoney/models/category.dart';
 import 'package:piggymoney/data/category_data.dart';
 import 'add_transaction_screen.dart'; // Import the AddTransactionScreen
@@ -250,12 +251,13 @@ class HomeScreen extends ConsumerWidget {
                                     MaterialPageRoute(
                                       builder: (context) =>
                                           TransactionDetailScreen(
-                                              transactionId: transaction.id),
+                                              transaction: transaction),
                                     ),
                                   );
 
                                   if (result == true) {
                                     ref.refresh(transactionServiceProvider);
+                                    ref.refresh(walletServiceProvider);
                                   }
                                 },
                                 child: Container(

@@ -1,13 +1,12 @@
 import 'package:realm/realm.dart';
 import 'package:piggymoney/models/transaction.dart';
+import 'package:piggymoney/core/database/realm_config.dart';
 
 class TransactionService {
-  late Realm _realm;
+  final Realm _realm = RealmConfig.instance;
   double _totalBalance = 0.0;
 
   TransactionService() {
-    final config = Configuration.local([TransactionItem.schema]);
-    _realm = Realm(config);
     _totalBalance = calculateTotalBalance();
   }
 
@@ -65,9 +64,7 @@ class TransactionService {
         final transactionItem = _realm.find<TransactionItem>(id);
         if (transactionItem != null) {
           print('Deleting transaction: ${transactionItem.toEJson()}');
-
           _realm.delete(transactionItem);
-
           print('Transaction deleted successfully.');
         } else {
           print('Transaction not found for ID: $id');
@@ -104,9 +101,5 @@ class TransactionService {
         print('Transaction not found for ID: $id');
       }
     });
-  }
-
-  void dispose() {
-    _realm.close();
   }
 }

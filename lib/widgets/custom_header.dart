@@ -5,12 +5,14 @@ class CustomHeader extends StatelessWidget {
   final String title;
   final VoidCallback onBackPressed;
   final bool isBackButtonVisible;
+  final Widget? trailing;
 
   const CustomHeader({
     Key? key,
     required this.title,
     required this.onBackPressed,
     this.isBackButtonVisible = true,
+    this.trailing,
   }) : super(key: key);
 
   @override
@@ -49,6 +51,7 @@ class CustomHeader extends StatelessWidget {
               textAlign: isBackButtonVisible ? TextAlign.left : TextAlign.center,
             ),
           ),
+          if (trailing != null) trailing!,
         ],
       ),
     );

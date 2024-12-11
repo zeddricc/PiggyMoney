@@ -3,23 +3,47 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:piggymoney/core/theme/app_theme.dart';
 import 'package:piggymoney/features/services/wallet_service_provider.dart'; // Import the provider
 import 'package:piggymoney/models/wallet.dart';
+import 'package:piggymoney/widgets/custom_header.dart';
 
-class CreateWalletScreen extends ConsumerWidget {
-  final WalletItem? wallet; // Optional wallet for updating
+class CreateWalletScreen extends ConsumerStatefulWidget {
+  final WalletItem? wallet;
 
-  const CreateWalletScreen({super.key, this.wallet});
+  const CreateWalletScreen({Key? key, this.wallet}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CreateWalletScreen> createState() => _CreateWalletScreenState();
+}
+
+class _CreateWalletScreenState extends ConsumerState<CreateWalletScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late TextEditingController _balanceController;
+  late TextEditingController _noteController;
+  late String _selectedType;
+  late String _selectedCurrency;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.wallet?.name ?? '');
+    _balanceController = TextEditingController(
+        text: widget.wallet?.initBalance.toString() ?? '0');
+    _noteController = TextEditingController(text: widget.wallet?.note ?? '');
+    _selectedType = widget.wallet?.walletType ?? 'CASH';
+    _selectedCurrency = widget.wallet?.currency ?? 'VND';
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _balanceController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final walletService = ref.watch(walletServiceProvider); // Use the provider
-    final TextEditingController _nameController =
-        TextEditingController(text: wallet?.name ?? '');
-    final TextEditingController _balanceController =
-        TextEditingController(text: wallet?.initBalance.toString() ?? '');
-    final TextEditingController _noteController =
-        TextEditingController(text: wallet?.note ?? '');
-    String _selectedType = wallet?.walletType ?? 'Cash'; // Default wallet type
-    String _selectedCurrency = wallet?.currency ?? 'VND'; // Default currency
 
     // List of wallet types and currencies
     final List<String> walletTypes = [
@@ -32,14 +56,65 @@ class CreateWalletScreen extends ConsumerWidget {
     ];
     final List<String> currencies = ['VND', 'USD', 'EUR', 'GBP', 'JPY', 'AUD'];
 
+    void _handleSave() {
+      if (_formKey.currentState!.validate()) {
+        final walletService = ref.read(walletServiceProvider);
+        final amount = double.parse(_balanceController.text.replaceAll(',', ''));
+
+        if (widget.wallet != null) {
+          // Cập nhật ví hiện có
+          final updatedWallet = WalletItem(
+            widget.wallet!.id, // Giữ nguyên ID cũ
+            _nameController.text,
+            amount,
+            _selectedType,
+            'VND',
+            note: _noteController.text,
+          );
+          
+          try {
+            walletService.updateWallet(updatedWallet);
+            Navigator.pop(context, true); // Trả về true để refresh danh sách
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lỗi cập nhật ví: $e')),
+            );
+          }
+        } else {
+          // Tạo ví mới
+          final newWallet = WalletItem(
+            DateTime.now().toString(), // ID mới cho ví mới
+            _nameController.text,
+            amount,
+            _selectedType,
+            'VND',
+            note: _noteController.text,
+          );
+          
+          try {
+            walletService.addWallet(newWallet);
+            Navigator.pop(context, true); // Trả về true để refresh danh sách
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Lỗi thêm ví: $e')),
+            );
+          }
+        }
+      }
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(wallet == null ? 'Create Wallet' : 'Update Wallet'),
-        backgroundColor: AppTheme.primaryColor,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(56),
+        child: CustomHeader(
+          title: widget.wallet == null ? 'Tạo ví mới' : 'Cập nhật ví',
+          onBackPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
             TextField(
               controller: _nameController,
@@ -105,35 +180,8 @@ class CreateWalletScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                final walletName = _nameController.text;
-                final initialBalance =
-                    double.tryParse(_balanceController.text) ?? 0.0;
-                if (walletName.isNotEmpty) {
-                  final newWallet = WalletItem(
-                      DateTime.now().toString(),
-                      walletName,
-                      initialBalance,
-                      _selectedType, // Changed from walletType to type (or the correct name)
-
-                      _selectedCurrency, // Ensure this matches the model
-                      note: _noteController.text);
-                  if (wallet == null) {
-                    walletService.addWallet(newWallet); // Add new wallet
-                    print(
-                        'Creating new wallet: ${newWallet.name}'); // Debug statement
-                  } else {
-                    print('Updating wallet with ID: ${wallet?.id}'); // Log the ID being updated
-                    walletService.updateWallet(newWallet); // Update existing wallet
-                    print(
-                        'Updating wallet: ${newWallet.name}'); // Debug statement
-                  }
-                  Navigator.pop(context, true); // Return to the previous screen
-                } else {
-                  print('Wallet name cannot be empty.');
-                }
-              },
-              child: Text(wallet == null ? 'Create Wallet' : 'Update Wallet'),
+              onPressed: _handleSave,
+              child: Text(widget.wallet == null ? 'Create Wallet' : 'Update Wallet'),
             ),
           ],
         ),

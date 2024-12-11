@@ -79,7 +79,7 @@ class AllTransactionsScreen extends ConsumerWidget {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => TransactionDetailScreen(
-                                    transactionId: transaction.id,
+                                    transaction: transaction,
                                   ),
                                 ),
                               );
